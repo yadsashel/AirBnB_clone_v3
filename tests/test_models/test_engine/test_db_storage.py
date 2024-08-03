@@ -68,48 +68,39 @@ test_db_storage.py'])
                             "{:s} method needs a docstring".format(func[0]))
 
 
-class TestFileStorage(unittest.TestCase):
-    """Test the FileStorage class"""
+class TestDBStorage(unittest.TestCase):
+    """Test the DBStorage class"""
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_all_returns_dict(self):
-        """Test that all returns a dictionaty"""
+        """Test that all returns a dictionary"""
         self.assertIs(type(models.storage.all()), dict)
 
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_all_no_class(self):
         """Test that all returns all rows when no class is passed"""
-        pass
 
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_new(self):
-        """test that new adds an object to the database"""
-        pass
+        """Test that new adds an object to the database"""
 
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_save(self):
         """Test that save properly saves objects to file.json"""
-        pass
 
-    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_get(self):
-        """Test that retrieve objects from file.json"""
-        state = State(name='Nairobi')
-        models.storage.new(state)
+        """Test that get returns the correct object based on class and ID"""
+        new_state = State(name="California")
+        models.storage.new(new_state)
         models.storage.save()
+        self.assertEqual(models.storage.get(State, new_state.id), new_state)
 
-        state_obj = models.storage.get(State, state.id)
-
-        self.assertEqual(state, state_obj)
-
-    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_count(self):
-        """Test that counts objects from file.json"""
-        objs_from_all = len(models.storage.all())
-        objs_from_count = models.storage.count()
-
-        self.assertEqual(objs_from_all, objs_from_count)
-
-        states_from_all = len(models.storage.all(State))
-        states_from_count = models.storage.count(State)
-
-        self.assertEqual(states_from_all, states_from_count)
+        """Test that count returns the correct number of objects"""
+        initial_count = models.storage.count()
+        new_state = State(name="Nevada")
+        models.storage.new(new_state)
+        models.storage.save()
+        self.assertEqual(models.storage.count(), initial_count + 1)
+        self.assertEqual(models.storage.count(State), 1)
