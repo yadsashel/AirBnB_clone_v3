@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Contains the FileStorage class
+Contains the class FileStorage
 """
 
 import json
@@ -17,80 +17,67 @@ classes = {"Amenity": Amenity, "BaseModel": BaseModel, "City": City,
 
 
 class FileStorage:
-    """serializes instances to a JSON file & deserializes back to instances"""
+    """Serializes instances to a JSON file and deserializes
+    JSON file to instances"""
+     __file_path = "file.json"
+      __objects = {}
 
-    # string - path to the JSON file
-    __file_path = "file.json"
-    # dictionary - empty but will store all objects by <class name>.id
-    __objects = {}
+       def all(self, cls=None):
+            """Returns the dictionary __objects"""
+            if cls is not None:
+                new_dict = {}
+                for key, value in self.__objects.items():
+                    if cls == value.__class__ or cls == value.__class__.__name__:
+                        new_dict[key] = value
+                return new_dict
+            return self.__objects
 
-    def all(self, cls=None):
-        """returns the dictionary __objects"""
-        if cls is not None:
-            new_dict = {}
-            for key, value in self.__objects.items():
-                if cls == value.__class__ or cls == value.__class__.__name__:
-                    new_dict[key] = value
-            return new_dict
-        return self.__objects
+        def new(self, obj):
+            """Sets in __objects the obj with key <obj class name>.id"""
+            self.__objects["{}.{}".format(type(obj).__name__, obj.id)] = obj
 
-    def new(self, obj):
-        """sets in __objects the obj with key <obj class name>.id"""
-        if obj is not None:
-            key = obj.__class__.__name__ + "." + obj.id
-            self.__objects[key] = obj
+        def save(self):
+            """Serializes __objects to the JSON file (path: __file_path)"""
+            with open(self.__file_path, 'w') as f:
+                temp = {}
+                temp.update(self.__objects)
+                for key, val in temp.items():
+                    temp[key] = val.to_dict()
+                json.dump(temp, f)
 
-    def save(self):
-        """serializes __objects to the JSON file (path: __file_path)"""
-        json_objects = {}
-        for key in self.__objects:
-            json_objects[key] = self.__objects[key].to_dict()
-        with open(self.__file_path, 'w') as f:
-            json.dump(json_objects, f)
+        def reload(self):
+            """Deserializes the JSON file to __objects"""
+            try:
+                with open(self.__file_path, 'r') as f:
+                    temp = json.load(f)
+                for key, val in temp.items():
+                    self.__objects[key] = classes[val["__class__"]](**val)
+            except FileNotFoundError:
+                pass
 
-    def reload(self):
-        """deserializes the JSON file to __objects"""
-        try:
-            with open(self.__file_path, 'r') as f:
-                jo = json.load(f)
-            for key in jo:
-                self.__objects[key] = classes[jo[key]["__class__"]](**jo[key])
-        except Exception:
-            pass
+        def delete(self, obj=None):
+            """Deletes obj from __objects if it's inside"""
+            if obj is not None:
+                key = "{}.{}".format(type(obj).__name__, obj.id)
+                if key in self.__objects:
+                    del self.__objects[key]
 
-    def delete(self, obj=None):
-        """delete obj from __objects if it’s inside"""
-        if obj is not None:
-            key = obj.__class__.__name__ + '.' + obj.id
-            if key in self.__objects:
-                del self.__objects[key]
+        def close(self):
+            """Call reload() method for deserializing the JSON file to objects"""
+            self.reload()
 
-    def close(self):
-        """call reload() method for deserializing the JSON file to objects"""
-        self.reload()
+        def get(self, cls, id):
+            """Retrieve one object based on the class and its ID"""
+            if cls not in classes.values():
+                return None
+            key = "{}.{}".format(cls.__name__, id)
+            return self.__objects.get(key, None)
 
-    def get(self, cls, id):
-        """
-        Retrieves object of a class or all objects of that class
-        """
-        if id and isinstance(id, str):
-            if cls and (cls in classes.keys() or cls in classes.values()):
-                all_objs = self.all(cls)
-                for key, value in all_objs.items():
-                    if id == value.id and key.split('.')[1] == id:
-                        return value
-        return
-
-    def count(self, cls=None):
-        """
-        Returns the occurrence of a class or all classes
-        """
-        occurrence = 0
-        if cls:
-            if cls in classes.keys() or cls in classes.values():
-                occurrence = len(self.all(cls))
-            else:
-                return occurrence
-        if not cls:
-            occurrence = len(self.all())
-        return occurrence
+        def count(self, cls=None):
+            """Count the number of objects in storage matching the given class"""
+            if cls is not None:
+                if cls not in classes.values():
+                    return 0
+                return len([obj for obj in self.__objects.values()
+                            if isinstance(obj, cls)])
+            return len(self.__objects)
