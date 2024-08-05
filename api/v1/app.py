@@ -13,7 +13,6 @@ app.url_map.strict_slashes = False
 app.register_blueprint(app_views)  # Register the blueprint
 CORS(app, origins=["0.0.0.0"])  # Set up CORS
 
-
 host = getenv("HBNB_API_HOST", "0.0.0.0")
 port = getenv("HBNB_API_PORT", "5000")
 
@@ -26,6 +25,7 @@ def teardown(exception):
 
 @app.errorhandler(404)
 def not_found(error):
+    """Handle 404 errors"""
     return jsonify({"error": "Not found"}), 404
 
 
